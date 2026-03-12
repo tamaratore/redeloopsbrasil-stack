@@ -1,0 +1,122 @@
+services:
+  npm:
+    image: jc21/nginx-proxy-manager:latest
+    container_name: npm
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "81:81"
+    volumes:
+      - ./data/npm/data:/data
+      - ./data/npm/letsencrypt:/etc/letsencrypt
+
+  postgres:
+    image: postgres:16
+    container_name: postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_PASSWORD: SenhaForte123
+      POSTGRES_DB: n8n
+      POSTGRES_USER: postgres
+    volumes:
+      - ./data/postgres:/var/lib/postgresql/data
+
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: n8n
+    restart: unless-stopped
+    environment:
+      - N8N_HOST=n8n.loopsbrasil.com.br
+      - N8N_PROTOCOL=https
+      - WEBHOOK_URL=https://n8n.loopsbrasil.com.br/
+      - GENERIC_TIMEZONE=America/Sao_Paulo
+      - DB_TYPE=postgresdb
+      - DB_POSTGRESDB_HOST=postgres
+      - DB_POSTGRESDB_DATABASE=n8n
+      - DB_POSTGRESDB_USER=postgres
+      - DB_POSTGRESDB_PASSWORD=SenhaForte123
+    volumes:
+      - ./data/n8n:/home/node/.n8n
+    depends_on:
+      - postgres
+
+  uptime-kuma:
+    image: louislam/uptime-kuma:1
+    container_name: uptime-kuma
+    restart: unless-stopped
+    volumes:
+      - ./data/uptime-kuma:/app/data
+
+  portainer:
+    image: portainer/portainer-ce:latest
+    container_name: portainer
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./data/portainer:/data
+
+  evolution:
+    image: atendai/evolution-api:latest
+    container_name: evolution
+    restart: unless-stopped
+    environment:
+      - SERVER_URL=https://evo.loopsbrasil.com.br
+      - AUTHENTICATION_API_KEY=evoLoops2024
+      - AUTHENTICATION_EXPOSE_IN_FETCH_INSTANCES=true
+      - DEL_INSTANCE=false
+      - QRCODE_LIMIT=30
+      - LANGUAGE=pt-BR
+      - DATABASE_ENABLED=true
+      - DATABASE_PROVIDER=postgresql
+      - DATABASE_CONNECTION_URI=postgresql://postgres:SenhaForte123@postgres:5432/evolution
+      - DATABASE_CONNECTION_CLIENT_NAME=evolution
+    volumes:
+      - ./data/evolution:/evolution/instances
+    depends_on:
+      - postgres
+
+  vscode:
+    image: lscr.io/linuxserver/code-server:latest
+    container_name: vscode
+    restart: unless-stopped
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=America/Sao_Paulo
+      - PASSWORD=VSCode2024
+      - SUDO_PASSWORD=VSCode2024
+      - DEFAULT_WORKSPACE=/config/workspace
+    volumes:
+      - ./data/vscode:/config
+      - /opt/ed-stack:/config/workspace
+
+  mariadb:
+    image: mariadb:10.11
+    container_name: mariadb
+    restart: unless-stopped
+    environment:
+      - MYSQL_ROOT_PASSWORD=SenhaForte123
+      - MYSQL_DATABASE=mautic
+      - MYSQL_USER=mautic
+      - MYSQL_PASSWORD=Mautic2024
+    volumes:
+      - ./data/mariadb:/var/lib/mysql
+
+  mautic:
+    image: mautic/mautic:5-apache
+    container_name: mautic
+    restart: unless-stopped
+    environment:
+      - MAUTIC_DB_HOST=mariadb
+      - MAUTIC_DB_PORT=3306
+      - MAUTIC_DB_NAME=mautic
+      - MAUTIC_DB_USER=mautic
+      - MAUTIC_DB_PASSWORD=Mautic2024
+      - MAUTIC_TRUSTED_PROXIES=0.0.0.0/0
+    depends_on:
+      - mariadb
+
+networks:
+  default:
+    driver: bridge
