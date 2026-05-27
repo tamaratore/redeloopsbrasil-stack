@@ -14,8 +14,9 @@ function createServer() {
   return s;
 }
 app.get("/", (req, res) => { res.json({ name: "WooCommerce MCP", version: "1.0.0" }); });
-app.get("/.well-known/oauth-authorization-server", (req, res) => { res.json({ issuer: BASE, authorization_endpoint: BASE + "/authorize", token_endpoint: BASE + "/token", response_types_supported: ["code"], grant_types_supported: ["authorization_code"] }); });
-app.get("/.well-known/openid-configuration", (req, res) => { res.json({ issuer: BASE, authorization_endpoint: BASE + "/authorize", token_endpoint: BASE + "/token" }); });
+app.get("/.well-known/oauth-authorization-server", (req, res) => { res.json({ issuer: BASE, authorization_endpoint: BASE + "/authorize", token_endpoint: BASE + "/token", registration_endpoint: BASE + "/register", response_types_supported: ["code"], grant_types_supported: ["authorization_code"] }); });
+app.get("/.well-known/openid-configuration", (req, res) => { res.json({ issuer: BASE, authorization_endpoint: BASE + "/authorize", token_endpoint: BASE + "/token", registration_endpoint: BASE + "/register" }); });
+app.post("/register", express.json(), (req, res) => { res.json({ client_id: "claude-mcp-client", client_secret: "noauth-secret", redirect_uris: req.body.redirect_uris || [], token_endpoint_auth_method: "none" }); });
 app.get("/authorize", (req, res) => { const r = req.query.redirect_uri || "/"; res.redirect(r + (r.includes("?") ? "&" : "?") + "code=noauth&state=" + (req.query.state || "")); });
 app.post("/token", express.json(), express.urlencoded({ extended: true }), (req, res) => { res.json({ access_token: "noauth-token", token_type: "bearer", expires_in: 86400 }); });
 app.get("/sse", async (req, res) => { res.setHeader("Content-Type", "text/event-stream"); res.setHeader("Cache-Control", "no-cache"); res.setHeader("Connection", "keep-alive"); const server = createServer(); const transport = new SSEServerTransport("/messages", res); res.on("close", () => transport.close()); await server.connect(transport); });
